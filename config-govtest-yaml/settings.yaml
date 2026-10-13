@@ -1,0 +1,9 @@
+environments:
+  govtest:
+    profile: govtest
+    group_scope: workspace
+
+protected_principals:
+  - admins
+
+allow_group_deletion: false

@@ -1,0 +1,7 @@
+directories:
+  - path: /Workspace/Shared/gov-test
+    acls:
+      - group: gov-test-team
+        permission: CAN_MANAGE
+      - group: users
+        permission: CAN_READ

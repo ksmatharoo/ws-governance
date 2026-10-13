@@ -1,0 +1,44 @@
+environment: govtest
+
+identities:
+  users:
+    - user_name: kulwinder.matharoo@databricks.com
+  service_principals:
+    - application_id: "46feaf68-b828-4564-9859-03eaf26be13f"
+      display_name: gov-test-outsider
+    - application_id: "b2dbcc98-7d9f-467d-a7b1-e8a026f94b73"
+      display_name: sp-fevm-shared-infra
+    - application_id: "91f9bc02-aab4-4f58-b253-b98b3c676428"
+      display_name: fe-vending-machine-feinfra-ops@databricks.com
+    - application_id: "90aec7bc-d01e-4b4e-a9be-3271c66686b0"
+      display_name: gov-test-sp
+  groups:
+    - name: admins
+    - name: gov-test-team
+    - name: users
+
+resources:
+  clusters:
+    - name: gov-test-cluster
+  cluster-policies:
+    - name: Job Compute
+    - name: Legacy Shared Compute
+    - name: Personal Compute
+    - name: Power User Compute
+    - name: Shared Compute
+    - name: gov-test-policy
+  instance-pools:
+    - name: gov-test-pool
+  warehouses:
+    - name: Serverless Starter Warehouse
+    - name: gov-test-wh
+  jobs:
+    - name: gov-test-governance
+  secret-scopes:
+    - name: gov-test
+  directories:
+    - path: /Workspace/Shared/gov-test
+    - path: /Workspace/Shared/gov-test/config-govtest
+    - path: /Workspace/Shared/gov-test/config-govtest/environments
+    - path: /Workspace/Shared/gov-test/config-govtest/environments/govtest
+    - path: /Workspace/Shared/gov-test/dist
