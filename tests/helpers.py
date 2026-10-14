@@ -75,9 +75,16 @@ class FakeSecrets:
 class _FakeList:
     def __init__(self, items):
         self.items = list(items)
+        self.patched: List = []
 
     def list(self, **kw):
         return iter(self.items)
+
+    def get(self, *, id=None):
+        return next(i for i in self.items if i.id == id)
+
+    def patch(self, *, id=None, operations=None, schemas=None):
+        self.patched.append((id, operations))
 
 
 class FakeGroups(_FakeList):
@@ -126,19 +133,24 @@ class FakeWS:
         self.lakeview = _FakeList(lakeview or [])
 
 
-def user(uid, name):
-    return iam.User(id=uid, user_name=name)
+def _ents(values):
+    return [iam.ComplexValue(value=v) for v in values]
 
 
-def sp(spid, app_id):
-    return iam.ServicePrincipal(id=spid, application_id=app_id)
+def user(uid, name, entitlements=()):
+    return iam.User(id=uid, user_name=name, entitlements=_ents(entitlements))
 
 
-def group(gid, name, member_ids_displays=()):
+def sp(spid, app_id, entitlements=()):
+    return iam.ServicePrincipal(id=spid, application_id=app_id, entitlements=_ents(entitlements))
+
+
+def group(gid, name, member_ids_displays=(), entitlements=()):
     return iam.Group(
         id=gid,
         display_name=name,
         members=[iam.ComplexValue(value=v, display=d) for v, d in member_ids_displays],
+        entitlements=_ents(entitlements),
     )
 
 

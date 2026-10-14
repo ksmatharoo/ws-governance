@@ -22,7 +22,14 @@ from __future__ import annotations
 import re
 from typing import List, Optional
 
-from governance.config.models import AclEntry, EnvironmentConfig, GroupEntry, MemberEntry, ObjectEntry
+from governance.config.models import (
+    AclEntry,
+    EntitlementEntry,
+    EnvironmentConfig,
+    GroupEntry,
+    MemberEntry,
+    ObjectEntry,
+)
 from governance.objecttypes import get_spec
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -83,6 +90,9 @@ def lint_environment(config: EnvironmentConfig) -> List[str]:
         if spec.kind == "groups":
             for group in entries:
                 _lint_group(group, issues)
+        elif spec.kind == "entitlements":
+            for entry in entries:
+                _lint_entitlements(entry, spec.allowed_permissions, issues)
         else:
             for entry in entries:
                 _lint_object(spec.key, spec.id_field, spec.allowed_permissions, entry, issues)
@@ -112,6 +122,23 @@ def _lint_permission(ctx, acl: AclEntry, allowed, issues: List[str]) -> None:
         issues.append(
             f"{ctx}: invalid permission '{acl.permission}' (allowed: {sorted(allowed)})"
         )
+
+
+def _lint_entitlements(entry: EntitlementEntry, allowed, issues: List[str]) -> None:
+    ctx = f"entitlements '{entry.identifier()}'"
+    msg = principal_issue(entry.principal_type, entry.principal_name)
+    if msg:
+        issues.append(f"{ctx}: {msg}")
+    seen = set()
+    for value in entry.entitlements:
+        if not isinstance(value, str):
+            issues.append(f"{ctx}: entitlement values must be strings, got {type(value).__name__}")
+            continue
+        if value not in allowed:
+            issues.append(f"{ctx}: invalid entitlement '{value}' (allowed: {sorted(allowed)})")
+        elif value in seen:
+            issues.append(f"{ctx}: entitlement '{value}' listed more than once")
+        seen.add(value)
 
 
 def _lint_group(group: GroupEntry, issues: List[str]) -> None:

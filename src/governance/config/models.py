@@ -39,6 +39,9 @@ _MEMBER_FIELDS = ("user", "service_principal", "group")
 _MEMBER_KEYS = set(_MEMBER_FIELDS)
 _GROUP_KEYS = {"name", "members"}
 
+# entitlements: one principal + its full entitlement set.
+_ENTITLEMENT_KEYS = set(_PRINCIPAL_FIELDS) | {"entitlements"}
+
 
 def _single_principal(obj: Any, fields: Tuple[str, ...], where: str) -> None:
     """Validate that exactly one of ``fields`` is set on ``obj``."""
@@ -222,8 +225,72 @@ class GroupEntry:
         return self.name
 
 
-# One loaded config entry is either an object (ACL-governed) or a group (membership-governed).
-ConfigEntry = Union[ObjectEntry, GroupEntry]
+@dataclass
+class EntitlementEntry:
+    """The full desired entitlement set for one principal (authoritative per principal).
+
+    Example (``identity.yaml``)::
+
+        entitlements:
+          - group: data-engineers
+            entitlements: [workspace-access, databricks-sql-access]
+          - service_principal: "1a2b3c4d-..."
+            entitlements: []          # explicitly none
+    """
+
+    entitlements: List[str] = field(default_factory=list)
+    group: Optional[str] = None
+    user: Optional[str] = None
+    service_principal: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Any, where: str) -> "EntitlementEntry":
+        if not isinstance(data, dict):
+            raise ConfigError(f"{where} must be an object, got {type(data).__name__}")
+        unknown = set(data) - _ENTITLEMENT_KEYS
+        if unknown:
+            raise ConfigError(
+                f"{where} has unknown field(s): {', '.join(sorted(unknown))}. "
+                f"Allowed: {', '.join(sorted(_ENTITLEMENT_KEYS))}"
+            )
+        if "entitlements" not in data:
+            raise ConfigError(f"{where} requires an 'entitlements' list (use [] for none)")
+        values = data["entitlements"]
+        if not isinstance(values, list):
+            raise ConfigError(f"{where}.entitlements must be a list, got {type(values).__name__}")
+        entry = cls(
+            entitlements=values,
+            group=data.get("group"),
+            user=data.get("user"),
+            service_principal=data.get("service_principal"),
+        )
+        _single_principal(entry, _PRINCIPAL_FIELDS, where)
+        return entry
+
+    @property
+    def principal(self) -> Tuple[str, str]:
+        """Return ``(principal_type, principal_name)`` for the single set principal."""
+        for field_name in _PRINCIPAL_FIELDS:
+            value = getattr(self, field_name)
+            if value:
+                return field_name, value
+        raise ConfigError("entitlement entry has no principal")  # guarded by _single_principal
+
+    @property
+    def principal_type(self) -> str:
+        return self.principal[0]
+
+    @property
+    def principal_name(self) -> str:
+        return self.principal[1]
+
+    def identifier(self, id_field: Optional[str] = None) -> str:
+        return f"{self.principal_type}:{self.principal_name}"
+
+
+# One loaded config entry: an object (ACL-governed), a group (membership-governed), or a
+# principal's entitlement set.
+ConfigEntry = Union[ObjectEntry, GroupEntry, EntitlementEntry]
 
 # An environment's full desired state: object-type key -> list of governed entries.
 EnvironmentConfig = Dict[str, List[ConfigEntry]]

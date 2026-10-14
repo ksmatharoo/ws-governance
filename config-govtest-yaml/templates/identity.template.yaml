@@ -1,0 +1,20 @@
+# Group membership (SCIM). Members not listed here are removed from the group.
+groups:
+  - name: GROUP_DISPLAY_NAME
+    members:
+      - user: user@example.com
+      - service_principal: "00000000-0000-0000-0000-000000000000"   # application_id
+      - group: NESTED_GROUP_NAME
+
+# Workspace entitlements. Each entry is one principal's COMPLETE set: apply adds missing
+# values and removes extra ones. Principals not listed are left alone. Never removed from
+# the admins group or protected_principals.
+# Values: workspace-access | workspace-consume | databricks-sql-access |
+#         allow-cluster-create | allow-instance-pool-create
+entitlements:
+  - group: GROUP_NAME
+    entitlements: [workspace-access, databricks-sql-access]
+  - user: user@example.com
+    entitlements: [workspace-access]
+  - service_principal: "00000000-0000-0000-0000-000000000000"   # application_id
+    entitlements: []                                            # explicitly none

@@ -1,0 +1,19 @@
+experiments:
+  - name: /Workspace/Shared/ml/EXPERIMENT    # full workspace path of the experiment
+    acls:                                  # CAN_READ | CAN_EDIT | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_EDIT
+      - group: GROUP_NAME
+        permission: CAN_READ
+
+serving-endpoints:
+  - name: ENDPOINT_NAME
+    acls:                                  # CAN_VIEW | CAN_QUERY | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - service_principal: "00000000-0000-0000-0000-000000000000"
+        permission: CAN_QUERY
+      - group: GROUP_NAME
+        permission: CAN_VIEW

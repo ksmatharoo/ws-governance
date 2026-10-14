@@ -1,0 +1,28 @@
+# Workspace objects are identified by path, not name.
+directories:
+  - path: /Workspace/Shared/DIRECTORY
+    acls:                                  # CAN_READ | CAN_RUN | CAN_EDIT | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_EDIT
+      - group: GROUP_NAME
+        permission: CAN_RUN
+      - group: GROUP_NAME
+        permission: CAN_READ
+
+notebooks:
+  - path: /Workspace/Shared/DIRECTORY/NOTEBOOK
+    acls:                                  # CAN_READ | CAN_RUN | CAN_EDIT | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_RUN
+
+repos:
+  - path: /Workspace/Repos/ORG/REPO
+    acls:                                  # CAN_READ | CAN_RUN | CAN_EDIT | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_EDIT

@@ -3,3 +3,9 @@ groups:
     members:
       - user: kulwinder.matharoo@databricks.com
       - service_principal: "90aec7bc-d01e-4b4e-a9be-3271c66686b0"
+
+entitlements:
+  - group: gov-test-team
+    entitlements: []
+  - service_principal: "46feaf68-b828-4564-9859-03eaf26be13f"   # gov-test-outsider
+    entitlements: [workspace-access, databricks-sql-access]

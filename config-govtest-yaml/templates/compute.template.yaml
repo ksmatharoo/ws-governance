@@ -1,0 +1,33 @@
+clusters:
+  - name: CLUSTER_NAME
+    acls:                                  # CAN_ATTACH_TO | CAN_RESTART | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_RESTART
+      - user: user@example.com
+        permission: CAN_ATTACH_TO
+
+cluster-policies:
+  - name: POLICY_NAME
+    acls:                                  # CAN_USE
+      - group: GROUP_NAME
+        permission: CAN_USE
+
+instance-pools:
+  - name: POOL_NAME
+    acls:                                  # CAN_ATTACH_TO | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_ATTACH_TO
+
+warehouses:
+  - name: WAREHOUSE_NAME
+    acls:                                  # CAN_USE | CAN_MONITOR | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_USE
+      - group: GROUP_NAME
+        permission: CAN_MONITOR

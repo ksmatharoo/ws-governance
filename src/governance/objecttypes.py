@@ -27,6 +27,15 @@ from typing import Dict, FrozenSet, Optional
 # the Permissions API and has a fixed, small set of levels).
 SECRET_PERMISSION_LEVELS = ("READ", "WRITE", "MANAGE")
 
+# Workspace entitlements assignable to users, service principals and groups via SCIM.
+ENTITLEMENTS = (
+    "workspace-access",
+    "workspace-consume",
+    "databricks-sql-access",
+    "allow-cluster-create",
+    "allow-instance-pool-create",
+)
+
 
 @dataclass(frozen=True)
 class ObjectTypeSpec:
@@ -36,7 +45,7 @@ class ObjectTypeSpec:
     """Top-level key used in the JSON config (e.g. ``jobs``)."""
 
     kind: str
-    """One of ``permissions``, ``secrets``, ``tokens``, ``groups``."""
+    """One of ``permissions``, ``secrets``, ``tokens``, ``groups``, ``entitlements``."""
 
     label: str
     """Human-friendly label for reports."""
@@ -52,7 +61,8 @@ class ObjectTypeSpec:
 
     allowed_permissions: Optional[FrozenSet[str]] = None
     """Permission levels accepted in config for this type (static, for offline linting).
-    ``None`` for ``groups`` (no permissions -- membership only). The live ``validate``
+    ``None`` for ``groups`` (no permissions -- membership only); for ``entitlements``
+    the allowed entitlement values. The live ``validate``
     command additionally cross-checks against ``permissions.get_permission_levels``."""
 
 
@@ -65,6 +75,9 @@ _SPECS = [
     # --- Identity (group membership governance via SCIM) ---
     # Governed first so that groups referenced by ACLs exist before ACLs are applied.
     ObjectTypeSpec("groups", "groups", "Groups (membership)", "name"),
+    # Entitlements come right after groups so groups created this run can be entitled.
+    ObjectTypeSpec("entitlements", "entitlements", "Entitlements (workspace)", None,
+                   allowed_permissions=frozenset(ENTITLEMENTS)),
     # --- Compute ---
     ObjectTypeSpec("clusters", "permissions", "Clusters", "name", api_type="clusters",
                    allowed_permissions=frozenset({"CAN_ATTACH_TO", "CAN_RESTART", "CAN_MANAGE"})),

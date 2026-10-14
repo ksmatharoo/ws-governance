@@ -1,0 +1,19 @@
+jobs:
+  - name: JOB_NAME
+    acls:                                  # CAN_VIEW | CAN_MANAGE_RUN | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - service_principal: "00000000-0000-0000-0000-000000000000"
+        permission: CAN_MANAGE_RUN
+      - group: GROUP_NAME
+        permission: CAN_VIEW
+
+pipelines:
+  - name: PIPELINE_NAME
+    acls:                                  # CAN_VIEW | CAN_RUN | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - service_principal: "00000000-0000-0000-0000-000000000000"
+        permission: CAN_RUN
+      - group: GROUP_NAME
+        permission: CAN_VIEW

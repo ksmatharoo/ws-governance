@@ -8,7 +8,7 @@ from governance.config.models import ObjectEntry
 from governance.handlers.permissions import PermissionsHandler
 from governance.handlers.secrets import SecretsHandler
 from governance.objecttypes import get_spec
-from helpers import FakePermissions, FakeSecrets, FakeWS, acr, aclitem, cluster
+from helpers import FakePermissions, FakeSecrets, FakeWS, acr, aclitem, cluster, pipeline
 
 
 class PermissionsHandlerTests(unittest.TestCase):
@@ -47,6 +47,21 @@ class PermissionsHandlerTests(unittest.TestCase):
         # drift removed on apply
         t, i, acl = ws.permissions.set_calls[0]
         self.assertEqual((t, i), ("clusters", "c1"))
+
+    def test_apply_resends_owner(self):
+        # Jobs/pipelines reject set() without exactly one owner; it must ride along unchanged.
+        perms = FakePermissions(state={("pipelines", "p1"): [
+            acr([iam.PermissionLevel.IS_OWNER], user_name="owner@x.com"),
+        ]})
+        ws = FakeWS(permissions=perms, pipelines=[pipeline("p1", "etl")])
+        h = PermissionsHandler(ws)
+        entry = ObjectEntry.from_dict({"name": "etl", "acls": [
+            {"group": "data-engineers", "permission": "CAN_VIEW"}]}, "x")
+        change, _ = h.reconcile(get_spec("pipelines"), entry, dry_run=False)
+        self.assertEqual(change.removes, [])             # owner never shows as drift
+        _, _, acl = ws.permissions.set_calls[0]
+        self.assertIn(("owner@x.com", iam.PermissionLevel.IS_OWNER),
+                      [(r.user_name, r.permission_level) for r in acl])
 
     def test_tokens_use_fixed_id(self):
         ws = self._ws()

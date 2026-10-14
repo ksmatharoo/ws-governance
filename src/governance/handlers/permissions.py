@@ -16,7 +16,7 @@ from databricks.sdk.service import iam
 
 from governance.changes import Change
 from governance.config.models import ObjectEntry
-from governance.diff import AclDiff, Grant, current_grants, desired_grants
+from governance.diff import AclDiff, Grant, current_grants, desired_grants, owner_grants
 from governance.objecttypes import ObjectTypeSpec
 from governance.resolve import resolve_object_id
 
@@ -58,7 +58,8 @@ class PermissionsHandler:
         ident = self.identifier(spec, entry)
         object_id = self.object_id(spec, entry)
 
-        current = current_grants(self.w.permissions.get(spec.api_type, object_id))
+        live = self.w.permissions.get(spec.api_type, object_id)
+        current = current_grants(live)
         desired = desired_grants(entry.acls)
         diff = AclDiff.compute(current, desired, self.protected)
 
@@ -72,7 +73,8 @@ class PermissionsHandler:
 
         audit: List[dict] = []
         if not dry_run and diff.changed:
-            acl = [_to_request(g) for g in sorted(diff.effective_desired)]
+            # Owners are outside the diff but must be re-sent: set() replaces the whole ACL.
+            acl = [_to_request(g) for g in sorted(diff.effective_desired | owner_grants(live))]
             self.w.permissions.set(spec.api_type, object_id, access_control_list=acl)
             audit.append(
                 {

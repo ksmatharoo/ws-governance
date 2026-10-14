@@ -1,0 +1,36 @@
+# Dashboards, queries and alerts are identified by display name.
+dashboards:
+  - name: DASHBOARD_DISPLAY_NAME
+    acls:                                  # CAN_READ | CAN_RUN | CAN_EDIT | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_EDIT
+      - group: GROUP_NAME
+        permission: CAN_RUN
+      - group: GROUP_NAME
+        permission: CAN_READ
+
+queries:
+  - name: QUERY_DISPLAY_NAME
+    acls:                                  # CAN_VIEW | CAN_RUN | CAN_EDIT | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_EDIT
+      - group: GROUP_NAME
+        permission: CAN_RUN
+      - group: GROUP_NAME
+        permission: CAN_VIEW
+
+alerts:
+  - name: ALERT_DISPLAY_NAME
+    acls:                                  # CAN_VIEW | CAN_RUN | CAN_EDIT | CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_MANAGE
+      - group: GROUP_NAME
+        permission: CAN_EDIT
+      - group: GROUP_NAME
+        permission: CAN_RUN
+      - group: GROUP_NAME
+        permission: CAN_VIEW

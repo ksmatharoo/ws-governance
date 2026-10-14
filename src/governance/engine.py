@@ -20,6 +20,7 @@ from governance.client import make_account_client, make_client
 from governance.config.loader import Settings
 from governance.config.models import EnvironmentConfig, GroupEntry, ObjectEntry
 from governance.errors import GovernanceError, ResolutionError
+from governance.handlers.entitlements import EntitlementsHandler
 from governance.handlers.groups import GroupHandler, GroupPlan
 from governance.handlers.permissions import PermissionsHandler
 from governance.handlers.secrets import SecretsHandler
@@ -97,6 +98,21 @@ class GovernanceEngine:
                 audit.extend(group_audit)
                 continue
 
+            if spec.kind == "entitlements":
+                # Workspace-level property: always the workspace SCIM API, whatever group_scope.
+                ent = EntitlementsHandler(self.ws, self.ws_index, self.settings.protected_principals)
+                created = [c.identifier for c in plan.changes if c.kind == "groups" and c.create]
+                if created and not dry_run:
+                    self.ws_index.invalidate_groups()  # see groups created earlier this run
+                for entry in entries:
+                    try:
+                        change, records = ent.reconcile(entry, dry_run, pending_groups=created)
+                        audit.extend(records)
+                    except (ResolutionError, GovernanceError) as exc:
+                        change = Change(kind=key, identifier=entry.identifier(), error=str(exc))
+                    plan.changes.append(change)
+                continue
+
             handler = sec if spec.kind == "secrets" else perm
             for entry in entries:
                 ident = perm.identifier(spec, entry) if spec.kind != "secrets" else entry.name
@@ -132,6 +148,15 @@ class GovernanceEngine:
 
             if spec.kind == "groups":
                 self._validate_groups(config[key], issues)
+                continue
+
+            if spec.kind == "entitlements":
+                for entry in config[key]:
+                    ctx = f"entitlements '{entry.identifier()}'"
+                    for value in entry.entitlements:
+                        if value not in spec.allowed_permissions:
+                            issues.append(f"{ctx}: invalid entitlement '{value}' (valid: {sorted(spec.allowed_permissions)})")
+                    self._validate_principal(entry.principal_type, entry.principal_name, ctx, issues)
                 continue
 
             for entry in config[key]:

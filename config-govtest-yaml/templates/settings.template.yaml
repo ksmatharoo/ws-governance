@@ -1,0 +1,21 @@
+# Copy to config-<name>/settings.yaml. One entry per environment; the key must match
+# the directory name under environments/.
+environments:
+  ENV_NAME:
+    profile: DATABRICKSCFG_PROFILE    # omit profile/host when running inside a Databricks Job
+    group_scope: workspace            # workspace | account
+  ENV_NAME_ACCOUNT_SCOPED:
+    profile: DATABRICKSCFG_PROFILE
+    group_scope: account
+
+# Required only when an environment uses group_scope: account.
+account:
+  profile: ACCOUNT_ADMIN_PROFILE
+  account_id: "00000000-0000-0000-0000-000000000000"
+
+# Principals whose existing grants are never revoked.
+protected_principals:
+  - admins
+  - account-admins
+
+allow_group_deletion: false

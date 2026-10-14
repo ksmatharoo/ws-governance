@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from governance.config.models import EnvironmentConfig, GroupEntry, ObjectEntry
+from governance.config.models import EntitlementEntry, EnvironmentConfig, GroupEntry, ObjectEntry
 from governance.errors import ConfigError
 from governance.objecttypes import all_keys, get_spec
 
@@ -231,6 +231,8 @@ def _validate_merged(merged: Dict[str, Any], origin: Dict[str, Path]) -> Environ
 
         if spec.kind == "groups":
             result[key] = _parse_groups(spec.key, value, where)
+        elif spec.kind == "entitlements":
+            result[key] = _parse_entitlements(spec.key, value, where)
         else:
             result[key] = _parse_objects(spec.key, spec.id_field, value, where)
 
@@ -256,6 +258,18 @@ def _parse_groups(key: str, value: list, where: str) -> List[GroupEntry]:
             raise ConfigError(f"Duplicate group name '{group.name}' for '{key}' in {where}")
         seen.add(group.name)
         entries.append(group)
+    return entries
+
+
+def _parse_entitlements(key: str, value: list, where: str) -> List[EntitlementEntry]:
+    entries: List[EntitlementEntry] = []
+    seen = set()
+    for idx, item in enumerate(value):
+        entry = EntitlementEntry.from_dict(item, f"{where}:{key}[{idx}]")
+        if entry.principal in seen:
+            raise ConfigError(f"Duplicate principal '{entry.identifier()}' for '{key}' in {where}")
+        seen.add(entry.principal)
+        entries.append(entry)
     return entries
 
 

@@ -61,6 +61,24 @@ def current_grants(object_permissions) -> Set[Grant]:
     return grants
 
 
+def owner_grants(object_permissions) -> Set[Grant]:
+    """Direct ``IS_OWNER`` grants from an ``ObjectPermissions``.
+
+    Never diffed, but ``set()`` replaces the whole ACL and some object types (jobs,
+    pipelines) reject a request that omits the owner, so these are re-sent as-is.
+    """
+    grants: Set[Grant] = set()
+    for acr in getattr(object_permissions, "access_control_list", None) or []:
+        principal = _principal_of(acr)
+        if principal is None:
+            continue
+        for perm in acr.all_permissions or []:
+            level = perm.permission_level.value if perm.permission_level else None
+            if not perm.inherited and level in _UNMANAGED_LEVELS:
+                grants.add((*principal, level))
+    return grants
+
+
 def _principal_of(acr) -> Tuple[str, str] | None:
     if acr.group_name:
         return ("group", acr.group_name)

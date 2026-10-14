@@ -185,6 +185,10 @@ def check(config: EnvironmentConfig, inventory: Inventory) -> List[str]:
                 for member in group.members:
                     check_principal(member.member_type, member.member_name, f"groups '{group.name}' member")
             continue
+        if spec.kind == "entitlements":
+            for entry in entries:  # type: EntitlementEntry
+                check_principal(entry.principal_type, entry.principal_name, f"entitlements '{entry.identifier()}'")
+            continue
 
         available = inventory.resources.get(key, set())
         for entry in entries:  # type: ObjectEntry
