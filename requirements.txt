@@ -1,4 +1,4 @@
 # All dependencies for databricks-governance (read into install_requires by setup.py).
-databricks-sdk>=0.139.0  # workspace API client (core; workspace_iam_v2 for workspace assignment)
+databricks-sdk>=0.20.0   # workspace API client (core)
 pyyaml>=6.0              # YAML config loader (--format yaml; config-govtest-yaml sample)
 pytest>=7.0             # test suite

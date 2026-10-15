@@ -5,8 +5,8 @@
 - **[build-run-test.md](build-run-test.md)** — how to install, configure, run
   (`lint` / `validate` / `plan` / `apply`), and test the framework, including CI usage.
 - **[config-schema.md](config-schema.md)** — allowed permission values per object type,
-  principal/identifier format rules, entitlements and workspace assignment, and how the
-  offline `lint` CI gate works.
+  principal/identifier format rules, entitlements, and how the offline `lint` CI gate
+  works.
 - **[pre-apply-runbook.md](pre-apply-runbook.md)** — what to create/verify in a new
   workspace before the first `apply`: prerequisites, discovery commands, the config
   artifact to author, validation gates, and rollback.

@@ -11,8 +11,7 @@ design, see [design.md](design.md); for running it as a workspace job, see
 - **Python 3.9+** (3.12 is what this repo is developed and tested on)
 - Dependencies, all declared in [`requirements.txt`](../requirements.txt) and installed
   with the package:
-  - **`databricks-sdk>=0.139.0`** — workspace API client. 0.139.0 is the minimum because
-    workspace assignment uses `WorkspaceClient.workspace_iam_v2`.
+  - **`databricks-sdk`** — workspace/account API client.
   - **`pyyaml`** — the config in this repo is YAML (`--format yaml`).
   - **`pytest`** — the test suite.
 - Databricks workspace access with permission to manage ACLs / SCIM groups
@@ -47,8 +46,7 @@ pip install dist/databricks_governance-0.1.0-py3-none-any.whl
 ```
 
 The command is identical on Windows CI agents. The workspace job installs this wheel with
-`%pip install` (see [../deploy/README.md](../deploy/README.md)); serverless already has a
-`databricks-sdk`, so the `>=0.139.0` pin is what makes pip upgrade it when it is older.
+`%pip install` (see [../deploy/README.md](../deploy/README.md)).
 
 ### Run from source without installing
 
@@ -159,7 +157,7 @@ under `--audit-dir`) listing every action taken.
 governance lint     $C --env govtest     # offline: catch bad values / formats
 governance validate $C --env govtest     # live: catch typos / missing objects / bad levels
 governance plan     $C --env govtest     # review the diff
-git add config-govtest-yaml/ && git commit -m "governance: add analysts as consumers"
+git add config-govtest-yaml/ && git commit -m "governance: grant analysts CAN_VIEW on daily-etl"
 governance apply    $C --env govtest     # enforce, confirm when prompted
 ```
 
@@ -188,7 +186,7 @@ The standard-library runner works too: `PYTHONPATH=src python3 -m unittest disco
 | `tests/test_inventory.py` | Offline existence checks against `_inventory` manifests |
 | `tests/test_diff.py` | ACL & membership diff; owner/inherited exclusion; protected preservation |
 | `tests/test_groups.py` | Group create/membership/delete lifecycle + guardrails |
-| `tests/test_entitlements.py` | Entitlements reconcile and workspace assignment of account principals |
+| `tests/test_entitlements.py` | Entitlements: config parsing, lint, inventory checks, handler and engine |
 | `tests/test_handlers.py` | Permissions & secrets reconcile (plan vs apply, protected) |
 | `tests/test_resolve.py` | Name/path → object id resolvers (incl. SQL/BI and pipelines) |
 | `tests/test_engine.py` | End-to-end validate/plan/apply, ordering, `--type` filter |
@@ -237,14 +235,12 @@ This repo ships no pipeline definition; see [ci-cd.md](ci-cd.md) for the executi
 | `lint` says `invalid permission` | Use a level allowed for that type — see [config-schema.md](config-schema.md). |
 | `lint` says `not a valid email` / `not a valid UUID` | `user` must be an email; `service_principal` must be a UUID application id. |
 | `lint` says `path must be ... absolute` | Notebook/directory/repo paths must start with `/`. |
-| `lint` says `neither defined in config nor in the inventory` | Add the principal to `_inventory.yaml` (also for account principals that `apply` will assign via `entitlements`). |
+| `lint` says `neither defined in config nor in the inventory` | Add the principal to `_inventory.yaml` (re-export it if the workspace changed). |
 | `Error: settings.json not found at ...` | The CLI defaulted to JSON / `config/`; pass `--config config-govtest-yaml --format yaml`. |
 | `Environment 'X' not defined` | Add it under `environments` in `settings.yaml`. |
 | `... not found` on plan/apply | Object name/path doesn't exist in the workspace — run `validate`. |
-| `... not found in the workspace or its account` (entitlements) | The principal isn't in the account either; check the name / application id. |
 | `invalid permission '...'` | Level not allowed for that object type — `validate` lists valid levels. |
 | `Group '...' not found` (member) | The user/SP/nested group isn't in the workspace/account SCIM directory. |
-| `'WorkspaceClient' object has no attribute 'workspace_iam_v2'` | `databricks-sdk` is older than 0.139.0 — upgrade it. |
 | `Account-scope groups requested but no 'account' block` | Add the `account` block to `settings.yaml`. |
 | Refuses to apply non-interactively | Pass `--yes` in scripts/CI. |
 | Auth errors | Check the profile in `~/.databrickscfg` (`databricks auth login --profile <p>`) or `DATABRICKS_*` env vars. |

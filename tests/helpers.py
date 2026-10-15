@@ -115,35 +115,12 @@ class _FakePipelines:
         return iter(self.items)
 
 
-class FakeWorkspaceIamV2:
-    """Account principals visible from the workspace host, plus workspace assignments."""
-
-    def __init__(self, groups=(), users=(), service_principals=()):
-        self.groups = list(groups)
-        self.users = list(users)
-        self.service_principals = list(service_principals)
-        self.assigned: List = []
-
-    def list_groups_proxy(self, **kw):
-        return iter(self.groups)
-
-    def list_users_proxy(self, **kw):
-        return iter(self.users)
-
-    def list_service_principals_proxy(self, **kw):
-        return iter(self.service_principals)
-
-    def create_workspace_assignment_proxy(self, workspace_assignment):
-        self.assigned.append(workspace_assignment)
-        return workspace_assignment
-
-
 class FakeWS:
     """A minimal fake WorkspaceClient. Customize via constructor kwargs."""
 
     def __init__(self, *, permissions=None, secrets=None, groups=None, users=None,
                  service_principals=None, clusters=None, pipelines=None, queries=None,
-                 alerts=None, lakeview=None, account_iam=None):
+                 alerts=None, lakeview=None):
         self.permissions = permissions or FakePermissions()
         self.secrets = secrets or FakeSecrets()
         self.groups = FakeGroups(groups or [])
@@ -154,7 +131,6 @@ class FakeWS:
         self.queries = _FakeList(queries or [])
         self.alerts = _FakeList(alerts or [])
         self.lakeview = _FakeList(lakeview or [])
-        self.workspace_iam_v2 = account_iam or FakeWorkspaceIamV2()
 
 
 def _ents(values):

@@ -37,8 +37,7 @@ def render_plan(plan: EnvironmentPlan, dry_run: bool = True) -> str:
 def _headline(change: Change) -> str:
     tags = []
     if change.create:
-        # For entitlements, "create" means assigning an account principal to the workspace.
-        tags.append("ASSIGN TO WORKSPACE" if change.kind == "entitlements" else "CREATE")
+        tags.append("CREATE")
     if change.delete:
         tags.append("DELETE")
     if change.protected:
@@ -54,8 +53,7 @@ def _summary(plan: EnvironmentPlan) -> str:
     n_changed = len(plan.changed)
     n_add = sum(len(c.adds) for c in plan.changes)
     n_remove = sum(len(c.removes) for c in plan.changes)
-    n_create = sum(1 for c in plan.changes if c.create and c.kind != "entitlements")
-    n_assign = sum(1 for c in plan.changes if c.create and c.kind == "entitlements")
+    n_create = sum(1 for c in plan.changes if c.create)
     n_delete = sum(1 for c in plan.changes if c.delete)
     n_err = len(plan.errors)
     parts = [
@@ -65,8 +63,6 @@ def _summary(plan: EnvironmentPlan) -> str:
     ]
     if n_create:
         parts.append(f"{n_create} group create")
-    if n_assign:
-        parts.append(f"{n_assign} workspace assignment")
     if n_delete:
         parts.append(f"{n_delete} group delete")
     if n_err:

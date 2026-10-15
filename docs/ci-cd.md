@@ -75,8 +75,7 @@ recommended next step. The workspace job writes it to
 ## Prerequisites (out of band)
 
 1. **Provision the automation service principal** with workspace-admin (and account-admin
-   if any env uses `group_scope: account`), via Terraform/IdP. Workspace admin is enough
-   for `entitlements`, including assigning account principals to the workspace.
+   if any env uses `group_scope: account`), via Terraform/IdP.
 2. **Add that SP to `protected_principals`** so reconcile never strips its own access.
    `apply` prints a warning if the acting identity is not protected.
 3. **Store SP credentials as pipeline secrets** (`DATABRICKS_HOST`, `DATABRICKS_CLIENT_ID`,

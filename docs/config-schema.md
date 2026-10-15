@@ -78,23 +78,6 @@ entitlements:
 - **Direct only:** entitlements a user inherits through group membership are not shown or
   changed; govern them on the group.
 - Always applied through the **workspace** SCIM API, even when `group_scope` is `account`.
-- **Workspace assignment:** if the principal is an account-level user, group or service
-  principal that is not yet in the workspace, `apply` assigns it to the workspace with
-  exactly the listed entitlements (Workspace Assignment API, Beta, called on the
-  workspace host). A workspace admin is enough; no account admin is needed. The plan tags
-  it `ASSIGN TO WORKSPACE`. Example of a consumer-only group:
-
-  ```yaml
-  entitlements:
-    - group: business-analysts
-      entitlements: [workspace-consume]
-  ```
-
-  - Principals are **never unassigned** from the workspace by this tool.
-  - An unassigned principal listed with `[]` is left alone (the API rejects an empty set).
-  - Consumer-only is about **effective** entitlements: `workspace-consume` does not take
-    away `workspace-access` / `databricks-sql-access` inherited from other groups (e.g.
-    `users` or a migration clone group in older workspaces). Check those groups too.
 - Reconciled right after `groups`, so a group created in the same run can be entitled.
 
 ## Linting in CI
@@ -163,12 +146,6 @@ What it reports:
 | Group neither defined in config nor in the inventory | **fail** — unknown group |
 | Group in `identities.groups` with `assigned: false` | **fail** — in account but not assigned to this workspace (assign it, account admin) |
 | Group defined in config (framework-created) or assigned | ok |
-
-> **Entitlements and unassigned principals.** `apply` can assign an account principal
-> listed under `entitlements` (see [Entitlements](#entitlements)), but `lint` still
-> checks it against the inventory: an `assigned: false` group, or a user / service
-> principal missing from `identities`, is reported. List it in the inventory as a
-> regular entry (without `assigned: false`) before committing the config.
 
 Service principals match by either `application_id` or `display_name`. Singleton `tokens`
 has no identifier, so only its principals are checked. This is the model behind

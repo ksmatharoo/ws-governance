@@ -57,13 +57,13 @@ python3.12 -m venv .venv            # on this machine use: uv venv --python 3.12
 .venv/bin/python -m pytest -q    # pythonpath=src is set in setup.cfg
 ```
 
-Expected: `127 passed, 1 skipped` (the skip is the PyYAML-absent path, inactive when PyYAML
+Expected: `120 passed, 1 skipped` (the skip is the PyYAML-absent path, inactive when PyYAML
 is installed).
 
 ## Documentation
 
 See [docs/README.md](docs/README.md) — design, build/run/test guide, config schema
-(including entitlements and workspace assignment), pre-apply runbook, and CI/CD model.
+(including entitlements), pre-apply runbook, and CI/CD model.
 Workspace deployment is in [deploy/README.md](deploy/README.md).
 
 ## Export a workspace inventory

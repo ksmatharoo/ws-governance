@@ -34,10 +34,9 @@ The framework has two parts:
 - Unity Catalog grants (Part 2).
 - Provisioning users/service principals — identities come from the IdP/SCIM sync. The
   framework references them; it never creates them.
-- Managing workspace assignment in general. The one exception is the `entitlements` set:
-  an account user, group or service principal listed there that is not yet in the
-  workspace is assigned to it with its listed entitlements (section 4.3.2). The framework
-  never unassigns anyone.
+- Assigning account identities to a workspace (workspace assignment / identity federation
+  is an account-admin action). The framework can *report* an unassigned group offline
+  (section 4.6) but does not perform the assignment.
 - Cloud IAM, network, or workspace-level settings outside object ACLs.
 
 The framework governs **group membership only when you want it to** — see the two
@@ -58,9 +57,7 @@ ownership models in section 4.3.1. In the IdP-groups model it manages nothing bu
 | Execution | **Two modes per environment** | Lower/test envs apply locally via a profile; higher envs are CI-only (`require_ci`), applied by a service principal. Same binary, same commands (section 6.1). |
 | Offline existence check | **Optional inventory manifest** | `_inventory.yaml` per env lets `lint` verify objects/principals exist — and flag account groups not assigned to the workspace — with no credentials (section 4.6). |
 | Group lifecycle | **create + membership + delete**, deletion behind a switch | Full control when the framework owns groups; omitted entirely in the IdP-groups model. |
-| Identity scope | **workspace or account** (per environment) | Both `WorkspaceClient` and `AccountClient` expose identical SCIM APIs, so one code path serves both. |
-| Workspace assignment | **Via `entitlements`, add-only** | A workspace admin can onboard an account principal (e.g. consumer-only) with no account-admin rights, using the workspace-host Workspace Assignment API (Beta). Nothing is ever unassigned. |
-| CLI/validation/output | argparse + dataclasses + plain text | No `typer`/`pydantic`/`rich` needed; portable. |
+| Identity scope | **workspace or account** (per environment) | Both `WorkspaceClient` and `AccountClient` expose identical SCIM APIs, so one code path serves both. || CLI/validation/output | argparse + dataclasses + plain text | No `typer`/`pydantic`/`rich` needed; portable. |
 
 ---
 
@@ -137,7 +134,7 @@ flowchart TD
 | `handlers/permissions.py` | Reconcile object + token ACLs via Permissions API. |
 | `handlers/secrets.py` | Reconcile secret-scope ACLs via Secrets API. |
 | `handlers/groups.py` | Group create/membership/delete via SCIM. |
-| `handlers/entitlements.py` | Entitlements via workspace SCIM; assigns account principals not yet in the workspace (Workspace Assignment API). |
+| `handlers/entitlements.py` | Entitlements reconcile via workspace SCIM (principals must already be in the workspace). |
 | `schema.py` | **Offline** value linting: permission enums + principal/identifier formats. No SDK calls. |
 | `changes.py` | `Change` / `EnvironmentPlan` result types shared by plan & apply. |
 | `engine.py` | `GovernanceEngine`: wiring, ordering, validate/plan/apply. |
@@ -151,7 +148,7 @@ Every governed type is one `ObjectTypeSpec`:
 | `kind` | Types | API used | Identifier |
 |---|---|---|---|
 | `groups` | `groups` | SCIM (`groups`/`users`/`service_principals`) | `name` (display name) |
-| `entitlements` | `entitlements` | Workspace SCIM; Workspace Assignment API for unassigned principals | principal (`group`/`user`/`service_principal`) |
+| `entitlements` | `entitlements` | Workspace SCIM (`groups`/`users`/`service_principals`) | principal (`group`/`user`/`service_principal`) |
 | `permissions` | `clusters`, `cluster-policies`, `instance-pools`, `warehouses`, `jobs`, `pipelines`, `notebooks`, `directories`, `repos`, `experiments`, `serving-endpoints`, `dashboards`, `queries`, `alerts` | Permissions API | `name` or `path` |
 | `secrets` | `secret-scopes` | Secrets API | `name` (scope) |
 | `tokens` | `tokens` | Permissions API on `authorization/tokens` | singleton |
@@ -208,18 +205,12 @@ Applied in a **safe order** so nested-group references resolve:
 workspace-scoped; only group membership can target the account. The same `IdentityIndex`
 and `GroupHandler` serve both because the SCIM APIs are identical in shape.
 
-### 4.3.2 Entitlements and workspace assignment
+### 4.3.2 Entitlements
 
-Each `entitlements` entry is one principal's complete entitlement set. For a principal
-already in the workspace, `apply` adds missing entitlements and removes extra ones through
-workspace SCIM (never removing from `admins` or `protected_principals`).
-
-For an account principal that is **not yet in the workspace**, the handler looks it up
-by name through the account proxy on the workspace host and calls the Workspace Assignment
-API (Beta) to assign it with exactly the listed entitlements. A workspace admin is enough.
-The plan tags it `ASSIGN TO WORKSPACE`. An unassigned principal listed with `[]` is left
-alone, and the framework never unassigns anyone. After assignment the principal is in
-workspace SCIM, so later runs reconcile it the normal way.
+Each `entitlements` entry is one principal's complete entitlement set. `apply` adds
+missing entitlements and removes extra ones through workspace SCIM, never removing from
+`admins` or `protected_principals`. The principal must already be in the workspace;
+otherwise the entry fails with a resolution error.
 
 ### 4.4 Processing order
 
@@ -347,7 +338,7 @@ groups:
 
 ```yaml
 entitlements:
-  - group: business-analysts          # assigned to the workspace if not there yet
+  - group: business-analysts          # must already be in the workspace
     entitlements: [workspace-consume]
 ```
 

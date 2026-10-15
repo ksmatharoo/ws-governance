@@ -13,13 +13,11 @@ you create**, and the safe apply sequence.
 | Token (PAT) ACL | The governed objects themselves (clusters, jobs, pipelines, warehouses, notebooks, dirs, repos, experiments, serving endpoints, dashboards, queries, alerts, secret scopes) |
 | Group membership | — |
 | Groups (create / delete, if enabled) | |
-| Entitlements, and workspace assignment of account principals listed under `entitlements` | |
+| Entitlements of principals already in the workspace | Workspace assignment (account principals must be assigned to the workspace first) |
 
 **Implication:** every principal you reference (user / service principal / nested group)
 and every object you govern (except groups, which the tool can create) **must already
 exist** in the workspace when you apply — otherwise resolution fails (safely, with an error).
-The exception is `entitlements`: a principal listed there only has to exist in the
-**account**, and `apply` assigns it to the workspace.
 
 ---
 
@@ -39,7 +37,7 @@ The exception is `entitlements`: a principal listed there only has to exist in t
 - [ ] **Break-glass principals identified** — the admin group(s) / SPs that must never be
       revoked, to list under `protected_principals`.
 - [ ] **Python + the package** installed where you run the CLI (`pip install -e .` or the
-      wheel; pulls `databricks-sdk>=0.139.0` and `pyyaml` from `requirements.txt`).
+      wheel; pulls `databricks-sdk` and `pyyaml` from `requirements.txt`).
 
 ---
 
@@ -127,8 +125,8 @@ groups:
       - service_principal: "<sp-application-uuid>"
 
 entitlements:
-  - group: <account-group>           # assigned to the workspace by apply if not there yet
-    entitlements: [workspace-consume]
+  - group: <real-group>              # must already be in the workspace
+    entitlements: [workspace-access, databricks-sql-access]
 
 # compute.yaml
 clusters:
