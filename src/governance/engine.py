@@ -151,12 +151,17 @@ class GovernanceEngine:
                 continue
 
             if spec.kind == "entitlements":
+                ent = EntitlementsHandler(self.ws, self.ws_index, self.settings.protected_principals)
                 for entry in config[key]:
                     ctx = f"entitlements '{entry.identifier()}'"
                     for value in entry.entitlements:
                         if value not in spec.allowed_permissions:
                             issues.append(f"{ctx}: invalid entitlement '{value}' (valid: {sorted(spec.allowed_permissions)})")
-                    self._validate_principal(entry.principal_type, entry.principal_name, ctx, issues)
+                    try:
+                        self.ws_index.validate(entry.principal_type, entry.principal_name)
+                    except ResolutionError as exc:
+                        if ent.account_principal_id(entry) is None:  # else: assigned on apply
+                            issues.append(f"{ctx}: {exc} (nor in its account)")
                 continue
 
             for entry in config[key]:

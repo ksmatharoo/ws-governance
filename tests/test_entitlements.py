@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from databricks.sdk.service import iam
+from databricks.sdk.service import iam, iamv2
 
 from governance.config.loader import EnvironmentSettings, Settings, load_environment
 from governance.config.models import EntitlementEntry, GroupEntry
@@ -15,9 +15,20 @@ from governance.handlers.entitlements import EntitlementsHandler
 from governance.inventory import Inventory, check
 from governance.resolve import IdentityIndex
 from governance.schema import lint_environment
-from helpers import FakeWS, group, sp, user
+from helpers import FakeWS, FakeWorkspaceIamV2, group, sp, user
 
 SP = "11111111-1111-4111-8111-111111111111"
+ACCT_SP = "22222222-2222-4222-8222-222222222222"
+
+
+def _account_iam():
+    """Account principals not yet assigned to the workspace."""
+    return FakeWorkspaceIamV2(
+        groups=[iamv2.Group(group_id="901", group_name="analysts")],
+        users=[iamv2.User(username="bob@x.com", full_name=None, account_user_status=None, user_id="902")],
+        service_principals=[iamv2.ServicePrincipal(
+            display_name="bi", account_sp_status=None, application_id=ACCT_SP, service_principal_id="903")],
+    )
 
 
 def _entry(data):
@@ -176,6 +187,59 @@ class EntitlementsHandlerTests(unittest.TestCase):
         self.assertEqual(change.adds, ["workspace-access"])
 
 
+class WorkspaceAssignmentTests(unittest.TestCase):
+    def _ws(self):
+        ws = _ws()
+        ws.workspace_iam_v2 = _account_iam()
+        return ws
+
+    def test_plan_assigns_account_group_without_writes(self):
+        ws = self._ws()
+        change, audit = _handler(ws).reconcile(
+            _entry({"group": "analysts", "entitlements": ["workspace-consume"]}), dry_run=True)
+        self.assertTrue(change.create)
+        self.assertEqual(change.adds, ["workspace-consume"])
+        self.assertEqual((audit, ws.workspace_iam_v2.assigned), ([], []))
+
+    def test_apply_assigns_each_principal_type_as_consumer(self):
+        ws = self._ws()
+        handler = _handler(ws)
+        for key, name in (("group", "analysts"), ("user", "bob@x.com"), ("service_principal", ACCT_SP)):
+            _, audit = handler.reconcile(_entry({key: name, "entitlements": ["workspace-consume"]}), dry_run=False)
+            self.assertEqual(audit[0]["action"], "assign_to_workspace")
+        self.assertEqual(
+            [(a.principal_id, a.entitlements) for a in ws.workspace_iam_v2.assigned],
+            [(pid, [iamv2.Entitlement.WORKSPACE_CONSUME]) for pid in (901, 902, 903)],
+        )
+
+    def test_entitlement_names_mapped_to_api_enum(self):
+        ws = self._ws()
+        _handler(ws).reconcile(_entry({"group": "analysts", "entitlements": [
+            "workspace-access", "databricks-sql-access", "allow-cluster-create"]}), dry_run=False)
+        self.assertEqual(ws.workspace_iam_v2.assigned[0].entitlements, [
+            iamv2.Entitlement.ALLOW_CLUSTER_CREATE,
+            iamv2.Entitlement.DATABRICKS_SQL_ACCESS,
+            iamv2.Entitlement.WORKSPACE_ACCESS,
+        ])
+
+    def test_empty_entitlements_leaves_unassigned_principal_alone(self):
+        ws = self._ws()
+        change, audit = _handler(ws).reconcile(_entry({"group": "analysts", "entitlements": []}), dry_run=False)
+        self.assertFalse(change.changed)
+        self.assertEqual((audit, ws.workspace_iam_v2.assigned), ([], []))
+
+    def test_assigned_principal_still_uses_scim(self):
+        ws = self._ws()
+        _handler(ws).reconcile(_entry({"group": "data-engineers", "entitlements": ["workspace-consume"]}),
+                               dry_run=False)
+        self.assertEqual(ws.workspace_iam_v2.assigned, [])
+        self.assertEqual(ws.groups.patched[0][0], "g-de")
+
+    def test_unknown_everywhere_is_an_error(self):
+        with self.assertRaisesRegex(Exception, "not found in the workspace or its account"):
+            _handler(self._ws()).reconcile(_entry({"group": "ghost", "entitlements": []}), dry_run=True)
+
+
 class EntitlementsEngineTests(unittest.TestCase):
     def _engine(self, ws):
         settings = Settings(
@@ -219,6 +283,13 @@ class EntitlementsEngineTests(unittest.TestCase):
             _entry({"group": "ghost", "entitlements": ["nope"]})]})
         self.assertTrue(any("invalid entitlement 'nope'" in i for i in issues))
         self.assertTrue(any("ghost" in i for i in issues))
+
+    def test_validate_accepts_unassigned_account_principal(self):
+        ws = _ws()
+        ws.workspace_iam_v2 = _account_iam()
+        issues = self._engine(ws).validate({"entitlements": [
+            _entry({"group": "analysts", "entitlements": ["workspace-consume"]})]})
+        self.assertEqual(issues, [])
 
 
 if __name__ == "__main__":

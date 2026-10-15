@@ -11,6 +11,8 @@ framework, for CI agents (including Windows) that build the wheel with setuptool
 ├── setup.cfg               # bdist_wheel + pytest options
 ├── requirements.txt        # all dependencies (single source of truth)
 ├── config-govtest-yaml/    # the govtest YAML config sample
+├── deploy/                 # workspace deployment (wheel, config, notebook, job)
+├── docs/                   # design, run/test guide, config schema, runbook, CI/CD
 ├── tests/                  # unit + prerequisite tests
 └── src/
     └── governance/         # the package
@@ -55,8 +57,14 @@ python3.12 -m venv .venv            # on this machine use: uv venv --python 3.12
 .venv/bin/python -m pytest -q    # pythonpath=src is set in setup.cfg
 ```
 
-Expected: `98 passed, 1 skipped` (the skip is the PyYAML-absent path, inactive when PyYAML
+Expected: `127 passed, 1 skipped` (the skip is the PyYAML-absent path, inactive when PyYAML
 is installed).
+
+## Documentation
+
+See [docs/README.md](docs/README.md) — design, build/run/test guide, config schema
+(including entitlements and workspace assignment), pre-apply runbook, and CI/CD model.
+Workspace deployment is in [deploy/README.md](deploy/README.md).
 
 ## Export a workspace inventory
 
